@@ -8,7 +8,7 @@ public class ChunkProcessingApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(ChunkProcessingApplication.class, args);
-        System.out.println("This is a Spring Batch Program..!!");
+        System.out.println("This is a Spring Batch Chunk Processing application..!!");
     }
 
 }
