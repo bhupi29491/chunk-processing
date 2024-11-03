@@ -13,6 +13,8 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.item.database.JdbcPagingItemReader;
+import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
@@ -75,6 +77,23 @@ public class BatchConfig {
         return itemReader;
     }
 
+    @Bean
+    public ItemReader<Product> jdbcPagingItemReader() throws Exception {
+        JdbcPagingItemReader<Product> itemReader = new JdbcPagingItemReader<>();
+        itemReader.setDataSource(dataSource);
+        SqlPagingQueryProviderFactoryBean factoryBean = new SqlPagingQueryProviderFactoryBean();
+        factoryBean.setDataSource(dataSource);
+        factoryBean.setSelectClause("select product_id, product_name, product_category, product_price");
+        factoryBean.setFromClause("from product_details");
+        factoryBean.setSortKey("product_id");
+
+        itemReader.setQueryProvider(factoryBean.getObject());
+        itemReader.setRowMapper(new ProductRowMapper());
+        itemReader.setPageSize(3);
+
+        return itemReader;
+    }
+
 //    @Bean
 //    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
 //        return new StepBuilder("chunkBasedStep1", jobRepository).<String, String>chunk(3, transactionManager)
@@ -106,10 +125,25 @@ public class BatchConfig {
 //    }
 
 
+//    @Bean
+//    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+//        return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
+//                                                                .reader(jdbcCursorItemReader())
+//                                                                .writer(new ItemWriter<Product>() {
+//                                                                    @Override
+//                                                                    public void write(Chunk<? extends Product> chunk) throws Exception {
+//                                                                        System.out.println("Chunk-processing Started");
+//                                                                        chunk.forEach(System.out::println);
+//                                                                        System.out.println("Chunk-processing Ended");
+//                                                                    }
+//                                                                })
+//                                                                .build();
+//    }
+
     @Bean
-    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
-                                                                .reader(jdbcCursorItemReader())
+                                                                .reader(jdbcPagingItemReader())
                                                                 .writer(new ItemWriter<Product>() {
                                                                     @Override
                                                                     public void write(Chunk<? extends Product> chunk) throws Exception {
