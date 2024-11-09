@@ -4,14 +4,17 @@ import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductItemPreparedStatementSetter;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
+import com.bhupi.spring_batch.chunkprocessing.processor.MyProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
@@ -32,6 +35,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Configuration
 public class BatchConfig {
@@ -92,7 +96,7 @@ public class BatchConfig {
         factoryBean.setFromClause("from product_details");
         factoryBean.setSortKey("product_id");
 
-        itemReader.setQueryProvider(factoryBean.getObject());
+        itemReader.setQueryProvider(Objects.requireNonNull(factoryBean.getObject()));
         itemReader.setRowMapper(new ProductRowMapper());
         itemReader.setPageSize(3);
 
@@ -145,13 +149,6 @@ public class BatchConfig {
 //                                                                .build();
 //    }
 
-    @Bean
-    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
-        return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
-                                                                .reader(jdbcPagingItemReader())
-                                                                .writer(jdbcBatchItemWriter())
-                                                                .build();
-    }
 
     @Bean
     public ItemWriter<Product> flatFileItemWriter() {
@@ -183,6 +180,30 @@ public class BatchConfig {
         return itemWriter;
     }
 
+    @Bean
+    public JdbcBatchItemWriter<Product> jdbcBatchItemWriterWithNamedParameters() {
+        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
+        itemWriter.setDataSource(dataSource);
+        itemWriter.setSql(
+                "insert into product_details_output values (:productId,:productName,:productCategory,:productPrice)");
+        itemWriter.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
+        return itemWriter;
+    }
+
+    @Bean
+    public ItemProcessor<Product, Product> myProductItemProcessor() {
+        return new MyProductItemProcessor();
+    }
+
+
+    @Bean
+    public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
+        return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
+                                                                .reader(jdbcPagingItemReader())
+                                                                .processor(myProductItemProcessor())
+                                                                .writer(jdbcBatchItemWriterWithNamedParameters())
+                                                                .build();
+    }
 
     @Bean
     public Job firstJob(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
