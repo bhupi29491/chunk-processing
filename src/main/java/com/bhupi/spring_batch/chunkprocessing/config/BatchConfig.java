@@ -2,6 +2,7 @@ package com.bhupi.spring_batch.chunkprocessing.config;
 
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
+import com.bhupi.spring_batch.chunkprocessing.domain.ProductItemPreparedStatementSetter;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
 import org.springframework.batch.core.Job;
@@ -11,6 +12,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
@@ -147,7 +149,7 @@ public class BatchConfig {
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
                                                                 .reader(jdbcPagingItemReader())
-                                                                .writer(flatFileItemWriter())
+                                                                .writer(jdbcBatchItemWriter())
                                                                 .build();
     }
 
@@ -169,6 +171,15 @@ public class BatchConfig {
         lineAggregator.setFieldExtractor(fieldExtractor);
 
         itemWriter.setLineAggregator(lineAggregator);
+        return itemWriter;
+    }
+
+    @Bean
+    public JdbcBatchItemWriter<Product> jdbcBatchItemWriter() {
+        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
+        itemWriter.setDataSource(dataSource);
+        itemWriter.setSql("insert into product_details_output values (?,?,?,?)");
+        itemWriter.setItemPreparedStatementSetter(new ProductItemPreparedStatementSetter());
         return itemWriter;
     }
 
