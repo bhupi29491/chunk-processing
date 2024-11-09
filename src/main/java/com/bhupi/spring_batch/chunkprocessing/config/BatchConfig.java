@@ -9,19 +9,22 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
@@ -144,15 +147,29 @@ public class BatchConfig {
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
                                                                 .reader(jdbcPagingItemReader())
-                                                                .writer(new ItemWriter<Product>() {
-                                                                    @Override
-                                                                    public void write(Chunk<? extends Product> chunk) throws Exception {
-                                                                        System.out.println("Chunk-processing Started");
-                                                                        chunk.forEach(System.out::println);
-                                                                        System.out.println("Chunk-processing Ended");
-                                                                    }
-                                                                })
+                                                                .writer(flatFileItemWriter())
                                                                 .build();
+    }
+
+    @Bean
+    public ItemWriter<Product> flatFileItemWriter() {
+        FlatFileItemWriter<Product> itemWriter = new FlatFileItemWriter<>();
+        itemWriter.setResource(new FileSystemResource("src/main/resources/data/Product_Details_Output.csv"));
+
+        DelimitedLineAggregator<Product> lineAggregator = new DelimitedLineAggregator<>();
+        lineAggregator.setDelimiter(",");
+
+        BeanWrapperFieldExtractor<Product> fieldExtractor = new BeanWrapperFieldExtractor<>();
+        fieldExtractor.setNames(new String[]{
+                "productId",
+                "productName",
+                "productCategory",
+                "productPrice"});
+
+        lineAggregator.setFieldExtractor(fieldExtractor);
+
+        itemWriter.setLineAggregator(lineAggregator);
+        return itemWriter;
     }
 
 
