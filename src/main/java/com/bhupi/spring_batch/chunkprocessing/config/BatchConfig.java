@@ -8,6 +8,7 @@ import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.MyProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
+import com.bhupi.spring_batch.chunkprocessing.validator.ProductValidator;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -27,6 +28,7 @@ import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.validator.ValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -212,12 +214,19 @@ public class BatchConfig {
         return new FilterProductItemProcessor();
     }
 
+    @Bean
+    public ValidatingItemProcessor<Product> validateProductItemProcessor() {
+        ValidatingItemProcessor<Product> validatingItemProcessor = new ValidatingItemProcessor<>(new ProductValidator());
+        validatingItemProcessor.setFilter(true);
+        return validatingItemProcessor;
+    }
+
 
     @Bean
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
                                                                 .reader(jdbcPagingItemReader())
-                                                                .processor(filterProductItemProcessor())
+                                                                .processor(validateProductItemProcessor())
                                                                 .writer(jdbcBatchItemWriter())
                                                                 .build();
     }
