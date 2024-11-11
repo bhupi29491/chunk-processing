@@ -3,10 +3,9 @@ package com.bhupi.spring_batch.chunkprocessing.config;
 import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
-import com.bhupi.spring_batch.chunkprocessing.domain.ProductItemPreparedStatementSetter;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
-import com.bhupi.spring_batch.chunkprocessing.processor.MyProductItemProcessor;
+import com.bhupi.spring_batch.chunkprocessing.processor.TransformProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -27,6 +26,7 @@ import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -174,14 +174,14 @@ public class BatchConfig {
         return itemWriter;
     }
 
-    @Bean
-    public JdbcBatchItemWriter<Product> jdbcBatchItemWriter() {
-        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
-        itemWriter.setDataSource(dataSource);
-        itemWriter.setSql("insert into product_details_output values (?,?,?,?)");
-        itemWriter.setItemPreparedStatementSetter(new ProductItemPreparedStatementSetter());
-        return itemWriter;
-    }
+//    @Bean
+//    public JdbcBatchItemWriter<Product> jdbcBatchItemWriter() {
+//        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
+//        itemWriter.setDataSource(dataSource);
+//        itemWriter.setSql("insert into product_details_output values (?,?,?,?)");
+//        itemWriter.setItemPreparedStatementSetter(new ProductItemPreparedStatementSetter());
+//        return itemWriter;
+//    }
 
 //    @Bean
 //    public JdbcBatchItemWriter<Product> jdbcBatchItemWriterWithNamedParameters() {
@@ -204,8 +204,8 @@ public class BatchConfig {
     }
 
     @Bean
-    public ItemProcessor<Product, OSProduct> myProductItemProcessor() {
-        return new MyProductItemProcessor();
+    public ItemProcessor<Product, OSProduct> transformProductItemProcessor() {
+        return new TransformProductItemProcessor();
     }
 
     @Bean
@@ -227,13 +227,24 @@ public class BatchConfig {
         return beanValidatingItemProcessor;
     }
 
+    @Bean
+    public CompositeItemProcessor<Product, OSProduct> itemProcessor() {
+        CompositeItemProcessor<Product, OSProduct> itemProcessor = new CompositeItemProcessor<>();
+        List itemProcessors = new ArrayList();
+        itemProcessors.add(validateProductItemProcessor());
+        itemProcessors.add(filterProductItemProcessor());
+        itemProcessors.add(transformProductItemProcessor());
+        itemProcessor.setDelegates(itemProcessors);
+        return itemProcessor;
+    }
+
 
     @Bean
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
-        return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
+        return new StepBuilder("chunkBasedStep1", jobRepository).<Product, OSProduct>chunk(3, transactionManager)
                                                                 .reader(jdbcPagingItemReader())
-                                                                .processor(validateProductItemProcessor())
-                                                                .writer(jdbcBatchItemWriter())
+                                                                .processor(itemProcessor())
+                                                                .writer(jdbcBatchItemWriterWithNamedParameters())
                                                                 .build();
     }
 

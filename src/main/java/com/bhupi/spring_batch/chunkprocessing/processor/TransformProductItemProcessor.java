@@ -4,11 +4,11 @@ import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import org.springframework.batch.item.ItemProcessor;
 
-public class MyProductItemProcessor implements ItemProcessor<Product, OSProduct> {
+public class TransformProductItemProcessor implements ItemProcessor<Product, OSProduct> {
 
     @Override
     public OSProduct process(Product item) throws Exception {
-        System.out.println("Processor() executed");
+        System.out.println("TransformProductItemProcessor() executed");
         OSProduct osProduct = new OSProduct();
         osProduct.setProductId(item.getProductId());
         osProduct.setProductName(item.getProductName());
