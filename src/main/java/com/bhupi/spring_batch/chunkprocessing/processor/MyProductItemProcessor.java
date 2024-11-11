@@ -1,13 +1,24 @@
 package com.bhupi.spring_batch.chunkprocessing.processor;
 
+import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import org.springframework.batch.item.ItemProcessor;
 
-public class MyProductItemProcessor implements ItemProcessor<Product, Product> {
+public class MyProductItemProcessor implements ItemProcessor<Product, OSProduct> {
 
     @Override
-    public Product process(Product item) throws Exception {
+    public OSProduct process(Product item) throws Exception {
         System.out.println("Processor() executed");
-        return item;
+        OSProduct osProduct = new OSProduct();
+        osProduct.setProductId(item.getProductId());
+        osProduct.setProductName(item.getProductName());
+        osProduct.setProductCategory(item.getProductCategory());
+        osProduct.setProductPrice(item.getProductPrice());
+        osProduct.setTaxPercent(item.getProductCategory()
+                                    .equals("Sports Accessories") ? 5 : 18);
+        osProduct.setSku(item.getProductCategory()
+                             .substring(0, 3) + item.getProductId());
+        osProduct.setShippingRate(item.getProductPrice() < 1000 ? 75 : 0);
+        return osProduct;
     }
 }

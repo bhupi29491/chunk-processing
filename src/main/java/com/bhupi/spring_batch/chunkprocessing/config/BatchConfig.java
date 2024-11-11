@@ -1,9 +1,11 @@
 package com.bhupi.spring_batch.chunkprocessing.config;
 
+import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductItemPreparedStatementSetter;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
+import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.MyProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
 import org.springframework.batch.core.Job;
@@ -180,19 +182,34 @@ public class BatchConfig {
         return itemWriter;
     }
 
+//    @Bean
+//    public JdbcBatchItemWriter<Product> jdbcBatchItemWriterWithNamedParameters() {
+//        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
+//        itemWriter.setDataSource(dataSource);
+//        itemWriter.setSql(
+//                "insert into product_details_output values (:productId,:productName,:productCategory,:productPrice)");
+//        itemWriter.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
+//        return itemWriter;
+//    }
+
     @Bean
-    public JdbcBatchItemWriter<Product> jdbcBatchItemWriterWithNamedParameters() {
-        JdbcBatchItemWriter<Product> itemWriter = new JdbcBatchItemWriter<>();
+    public JdbcBatchItemWriter<OSProduct> jdbcBatchItemWriterWithNamedParameters() {
+        JdbcBatchItemWriter<OSProduct> itemWriter = new JdbcBatchItemWriter<>();
         itemWriter.setDataSource(dataSource);
         itemWriter.setSql(
-                "insert into product_details_output values (:productId,:productName,:productCategory,:productPrice)");
+                "insert into os_product_details values (:productId,:productName,:productCategory,:productPrice, :taxPercent, :sku, :shippingRate)");
         itemWriter.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
         return itemWriter;
     }
 
     @Bean
-    public ItemProcessor<Product, Product> myProductItemProcessor() {
+    public ItemProcessor<Product, OSProduct> myProductItemProcessor() {
         return new MyProductItemProcessor();
+    }
+
+    @Bean
+    public ItemProcessor<Product, Product> filterProductItemProcessor() {
+        return new FilterProductItemProcessor();
     }
 
 
@@ -200,8 +217,8 @@ public class BatchConfig {
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, Product>chunk(3, transactionManager)
                                                                 .reader(jdbcPagingItemReader())
-                                                                .processor(myProductItemProcessor())
-                                                                .writer(jdbcBatchItemWriterWithNamedParameters())
+                                                                .processor(filterProductItemProcessor())
+                                                                .writer(jdbcBatchItemWriter())
                                                                 .build();
     }
 
