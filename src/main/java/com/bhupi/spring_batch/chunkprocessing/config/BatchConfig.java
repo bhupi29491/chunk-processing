@@ -5,6 +5,9 @@ import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyChunkListener;
+import com.bhupi.spring_batch.chunkprocessing.listener.MyItemProcessListener;
+import com.bhupi.spring_batch.chunkprocessing.listener.MyItemReadListener;
+import com.bhupi.spring_batch.chunkprocessing.listener.MyItemWriteListener;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.TransformProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
@@ -50,6 +53,21 @@ public class BatchConfig {
     @Bean
     public MyChunkListener myChunkListener() {
         return new MyChunkListener();
+    }
+
+    @Bean
+    public MyItemReadListener myItemReadListener() {
+        return new MyItemReadListener();
+    }
+
+    @Bean
+    public MyItemProcessListener myItemProcessListener() {
+        return new MyItemProcessListener();
+    }
+
+    @Bean
+    public MyItemWriteListener myItemWriteListener() {
+        return new MyItemWriteListener();
     }
 
     @Bean
@@ -252,6 +270,9 @@ public class BatchConfig {
                                                                 .processor(itemProcessor())
                                                                 .writer(jdbcBatchItemWriterWithNamedParameters())
                                                                 .listener(myChunkListener())
+                                                                .listener(myItemReadListener())
+                                                                .listener(myItemProcessListener())
+                                                                .listener(myItemWriteListener())
                                                                 .build();
     }
 
