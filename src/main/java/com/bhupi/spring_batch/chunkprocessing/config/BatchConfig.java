@@ -4,6 +4,7 @@ import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
+import com.bhupi.spring_batch.chunkprocessing.listener.MyChunkListener;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.TransformProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
@@ -45,6 +46,11 @@ public class BatchConfig {
 
     @Autowired
     public DataSource dataSource;
+
+    @Bean
+    public MyChunkListener myChunkListener() {
+        return new MyChunkListener();
+    }
 
     @Bean
     public ItemReader<String> itemReader() {
@@ -245,12 +251,13 @@ public class BatchConfig {
                                                                 .reader(jdbcPagingItemReader())
                                                                 .processor(itemProcessor())
                                                                 .writer(jdbcBatchItemWriterWithNamedParameters())
+                                                                .listener(myChunkListener())
                                                                 .build();
     }
 
     @Bean
-    public Job firstJob(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
-        return new JobBuilder("job1", jobRepository).start(step1(jobRepository, transactionManager))
+    public Job firstJob(JobRepository jobRepository, Step step1) throws Exception {
+        return new JobBuilder("job1", jobRepository).start(step1)
                                                     .build();
     }
 
