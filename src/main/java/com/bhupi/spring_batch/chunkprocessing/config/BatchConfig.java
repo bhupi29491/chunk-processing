@@ -12,6 +12,7 @@ import com.bhupi.spring_batch.chunkprocessing.listener.MySkipListener;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.TransformProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
+import com.bhupi.spring_batch.chunkprocessing.skippolicy.MySkipPolicy;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -27,14 +28,12 @@ import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
-import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
-import org.springframework.batch.item.validator.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,6 +75,11 @@ public class BatchConfig {
     @Bean
     public MySkipListener mySkipListener() {
         return new MySkipListener();
+    }
+
+    @Bean
+    public MySkipPolicy mySkipPolicy() {
+        return new MySkipPolicy();
     }
 
     @Bean
@@ -278,9 +282,10 @@ public class BatchConfig {
                                                                 .processor(itemProcessor())
                                                                 .writer(jdbcBatchItemWriterWithNamedParameters())
                                                                 .faultTolerant()
-                                                                .skip(ValidationException.class)
-                                                                .skip(FlatFileParseException.class)
-                                                                .skipLimit(3)
+//                                                                .skip(ValidationException.class)
+//                                                                .skip(FlatFileParseException.class)
+//                                                                .skipLimit(3)
+                                                                .skipPolicy(mySkipPolicy())
                                                                 .listener(mySkipListener())
 //                                                                .listener(myChunkListener())
 //                                                                .listener(myItemReadListener())
