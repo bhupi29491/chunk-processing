@@ -1,6 +1,11 @@
 product_id,product_name,product_category,product_price
 1,Google Pixel 8,Mobile Phones,1200
-2,iPad Mini,Tablets,800
+2,iPad Mini,Tablets,800,
 3,Canon 1500D,Cameras,500
 4,LG 4K Ultra HD TV,Televisions,300
 5,Goalkeeper Gloves,Sports Accessories,100
+6,Samsung Galaxy S24,Mobile Phones,-200
+7,Sony Bravia,Televisions,-750
+8,MacBook Pro,Laptops,150
+9,iPhone 15,Mobile Phones,1100
+10,Nike Phantom,Footwear,550

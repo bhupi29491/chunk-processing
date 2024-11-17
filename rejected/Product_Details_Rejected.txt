@@ -1,0 +1,3 @@
+2,iPad Mini,Tablets,800,
+Product{productId=6, productName='Samsung Galaxy S24', productCategory='Mobile Phones', productPrice=-200}
+Product{productId=7, productName='Sony Bravia', productCategory='Televisions', productPrice=-750}

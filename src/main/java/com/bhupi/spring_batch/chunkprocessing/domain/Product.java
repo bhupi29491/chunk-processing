@@ -1,16 +1,17 @@
 package com.bhupi.spring_batch.chunkprocessing.domain;
 
 import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Min;
 
 public class Product {
 
     private Integer productId;
     private String productName;
 
-    @Pattern(regexp = "Mobile Phones|Tablets|Televisions|Sports Accessories")
+    //    @Pattern(regexp = "Mobile Phones|Tablets|Televisions|Sports Accessories")
     private String productCategory;
 
+    @Min(0)
     @Max(100000)
     private Integer productPrice;
 

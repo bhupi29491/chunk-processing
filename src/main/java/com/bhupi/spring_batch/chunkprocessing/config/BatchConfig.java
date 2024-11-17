@@ -8,6 +8,7 @@ import com.bhupi.spring_batch.chunkprocessing.listener.MyChunkListener;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyItemProcessListener;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyItemReadListener;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyItemWriteListener;
+import com.bhupi.spring_batch.chunkprocessing.listener.MySkipListener;
 import com.bhupi.spring_batch.chunkprocessing.processor.FilterProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.processor.TransformProductItemProcessor;
 import com.bhupi.spring_batch.chunkprocessing.reader.ProductNameItemReader;
@@ -26,12 +27,14 @@ import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
+import org.springframework.batch.item.validator.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -68,6 +71,11 @@ public class BatchConfig {
     @Bean
     public MyItemWriteListener myItemWriteListener() {
         return new MyItemWriteListener();
+    }
+
+    @Bean
+    public MySkipListener mySkipListener() {
+        return new MySkipListener();
     }
 
     @Bean
@@ -247,7 +255,7 @@ public class BatchConfig {
     @Bean
     public BeanValidatingItemProcessor<Product> validateProductItemProcessor() {
         BeanValidatingItemProcessor<Product> beanValidatingItemProcessor = new BeanValidatingItemProcessor<>();
-        beanValidatingItemProcessor.setFilter(true);
+//        beanValidatingItemProcessor.setFilter(true);
         return beanValidatingItemProcessor;
     }
 
@@ -266,13 +274,18 @@ public class BatchConfig {
     @Bean
     public Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) throws Exception {
         return new StepBuilder("chunkBasedStep1", jobRepository).<Product, OSProduct>chunk(3, transactionManager)
-                                                                .reader(jdbcPagingItemReader())
+                                                                .reader(flatFileItemReader())
                                                                 .processor(itemProcessor())
                                                                 .writer(jdbcBatchItemWriterWithNamedParameters())
-                                                                .listener(myChunkListener())
-                                                                .listener(myItemReadListener())
-                                                                .listener(myItemProcessListener())
-                                                                .listener(myItemWriteListener())
+                                                                .faultTolerant()
+                                                                .skip(ValidationException.class)
+                                                                .skip(FlatFileParseException.class)
+                                                                .skipLimit(3)
+                                                                .listener(mySkipListener())
+//                                                                .listener(myChunkListener())
+//                                                                .listener(myItemReadListener())
+//                                                                .listener(myItemProcessListener())
+//                                                                .listener(myItemWriteListener())
                                                                 .build();
     }
 
