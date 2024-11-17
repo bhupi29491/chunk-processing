@@ -4,6 +4,7 @@ import com.bhupi.spring_batch.chunkprocessing.domain.OSProduct;
 import com.bhupi.spring_batch.chunkprocessing.domain.Product;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductFieldSetMapper;
 import com.bhupi.spring_batch.chunkprocessing.domain.ProductRowMapper;
+import com.bhupi.spring_batch.chunkprocessing.exception.MyException;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyChunkListener;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyItemProcessListener;
 import com.bhupi.spring_batch.chunkprocessing.listener.MyItemReadListener;
@@ -285,9 +286,11 @@ public class BatchConfig {
 //                                                                .skip(ValidationException.class)
 //                                                                .skip(FlatFileParseException.class)
 //                                                                .skipLimit(3)
-                                                                .skipPolicy(mySkipPolicy())
+//                                                                .skipPolicy(mySkipPolicy())
+                                                                .retry(MyException.class)
+                                                                .retryLimit(4)
                                                                 .listener(mySkipListener())
-//                                                                .listener(myChunkListener())
+                                                                .listener(myChunkListener())
 //                                                                .listener(myItemReadListener())
 //                                                                .listener(myItemProcessListener())
 //                                                                .listener(myItemWriteListener())
